@@ -1,0 +1,271 @@
+@charset "UTF-8";
+html, body {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  vertical-align: baseline; }
+
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure,
+footer, header, hgroup, menu, nav, section {
+  display: block; }
+
+body.inicial {
+  line-height: 1; }
+
+ol, ul {
+  list-style: none; }
+
+blockquote, q {
+  quotes: none; }
+
+blockquote:before, blockquote:after,
+q:before, q:after {
+  content: '';
+  content: none; }
+
+table { border-collapse: collapse; border-spacing: 0; }
+
+/*************************************************************************
+  estilos referentes ao estilos geral
+*************************************************************************/
+body.inicial { font: inherit; position: relative; overflow-x: hidden; }
+
+body.open { background: #005a8c; overflow: hidden !important; }
+
+.center-element { width: 960px;margin: 0 auto; }
+
+.main {position: relative; }
+
+.main.open {right: 230px; }
+
+@media (max-width: 1080px) {
+    html { font-size: 93.75%; /*15px*/ }
+}
+
+@media (max-width: 900px) {
+    html { font-size: 90.625%; /*14.5px*/ }
+}
+
+@media (max-width: 720px) {
+    html { font-size: 87.5%; /*14px*/ }
+}
+
+@media (max-width: 590px) {
+    html { font-size: 75%; /*12px*/ }
+}
+
+/***********************************************************************
+  Estilos referente a footer
+***********************************************************************/
+.footer {width: 100%; display: table; padding: 0.5em 0; background: #125687; bottom: 0; position: fixed;
+}
+
+a.powered {display: block; float: right; padding: 0 1.5em 0 1em; height: 1.5em; line-height: 2em; font-size: 0.7em; color: white; text-decoration: none;
+   background: url(../img/logo_300_bc.png) no-repeat right center;background-size: 13%;
+}
+/***********************************************************************
+  Estilos referente ao cabeçalho
+***********************************************************************/
+    body.inicial #topo table { height: 50px; }
+    body.inicial #topo b { font-family: arial; }
+    body.inicial #topo table td { font-family: arial; }
+    body.inicial #topo table td#topoEditavel { vertical-align: bottom; }
+    body.inicial #topo table td a { text-decoration: none; color: black; }
+    body.inicial #topo table td a:hover { background-color: #004466; color: white; }
+    body.inicial #topo table td img { position: absolute; }
+
+    div#topo{ height: 50px;  overflow: hidden;  width: 100%; }
+    div#topo div#fundoTopo { position: relative; height: 50px; }
+    div#topo div.imgLogo { display: inline; }
+    div#topo div#sistema { position: absolute; width: 750px; top: 0px; font-size: 9px; z-index: 1; }
+    div#topo div#dadosEscola { width: 750px; position: absolute; bottom: 2px; top: 12px; text-align: right; }
+
+/***********************************************************************
+  boas-vindas e solicitação de CPF
+***********************************************************************/
+div#intro { font-family: Arial, Helvetica, sans-serif;  text-align: center; }
+div#intro h4 { font-size: 1.8em; margin-top: 3em; }
+div#intro h2 { font-size: 2.6em; font-weight: bold; }
+
+div#areaCadastro { width: 65%; height: auto; padding: 1em 3% 4em 2%; font-size: 1.4em; margin: 4em 0 0 15%; text-align: center; 
+  background-color: #F0F0F0; border: 1px solid #CCC; border-radius: 5px; position: relative; }
+div#areaCadastro.semEscola { padding: 1em 2%; }
+div#areaCadastro div.botoes { top: auto; bottom: 0.5em; right: 5%; font-size: 1.2em; }
+div#areaCadastro a.botPadrao { width: auto; height: auto; padding: 0 0.5em; text-decoration: none; font-size: 1.2em;
+  color: #000; border-radius: 5px; }
+/* div#areaCadastro a.botPadrao:hover { width: auto; height: auto; padding: 0 0.5em; text-decoration: none; font-size: 1.2em;
+    color: #F0F0F0; border-radius: 5px; background-color: #003366; } */
+div#areaCadastro a.enviar.desabilitado { opacity: 1; color: transparent; background-image: url(../img/ico_aguarde3.gif);
+  background-size: 32%; background-color: #F0F0F0; border-color: #CCC; }
+div#areaCadastro div.carregando { padding-left: 10%; font-weight: bold; color: #777; 
+  background-image: url(../img/ico_aguarde3.gif); background-size: auto 75%; border-radius: 5px;  }
+div#areaCadastro input#campo_cpf{font-size: 1.2em; border-radius: 5px; padding-left: 0.3em; } 
+
+div#areaCadastro h6.titulo { position: absolute; top: -1.5em; padding: 0.1em 2%; color: white; text-align: left;
+  background-color: #a39494; border: 1px solid #606060; border-bottom: 0; border-radius: 5px 5px 0 0; }
+div#areaCadastro div.aviso { display: block; top:auto; right: 12em; width: auto; padding: 0 2%; font-size: 1.2em; color: white;
+  background-color: #B10000; border-radius: 5px; z-index: 100; }
+div#areaCadastro.cadAluno div.aviso { font-size: 1.2em; bottom: 0; right: 0; }
+div#areaCadastro.pedeSenha div.aviso { font-size: 1.2em; right: 5.2em; bottom: 0; }
+div#areaCadastro div.aviso.salve { top: auto; bottom: 0.8em; right: 38%; }
+div#areaCadastro div.aviso.excluir { top: auto; bottom: 0; right: 0; width: auto; padding: 0.5% 0 1.5% 0; 
+  background: #B10000; border-radius: 5px; }
+div#areaCadastro div.aviso h6 { width: auto; padding: 0; margin: 0; line-height: 2em; font-weight: bold;
+  color: white; text-align: right; white-space: nowrap; background-color: transparent; border: 0; }
+div#areaCadastro div.aviso h6 img { right: -15%; top: 0; padding: 2%; background-color: #B10000; border-radius: 0 5px 5px 0; }
+div#areaCadastro div.aviso ul { float: left; }
+div#areaCadastro div.aviso ul li { height: auto; line-height: 1.4em; margin: 0; text-align: left; color: white; }
+div#areaCadastro div.aviso ul li input { margin: 0.3em 4%; line-height: 1.5em; }
+div#areaCadastro div.aviso ul li input:hover { color: white; background-color: #003366; }
+div#areaCadastro div.aviso.excluir h6 { float: left; padding: 0 4%; }
+div#areaCadastro div.aviso.excluir h6 img { display: none; }
+div#areaCadastro div.aviso.excluir ul { width: 100%; }
+div#areaCadastro div.aviso.espera.pq { top: auto; bottom: 0; right: 6%; padding: 0 4.5%; }
+  
+div#areaCadastro div#cpf { width: 97%; }
+div#areaCadastro div#nome { width: 38%; }
+div#areaCadastro.cadAluno div#cpf { width: 18%; }
+div#areaCadastro div#cpf span { display: block; height: 1.6em; padding: 0 2%; text-align: left; cursor: default;
+  border: 1px solid #888; border-radius: 5px; }
+div#areaCadastro div#cpf span.max { height: auto; padding: 0; border: 0; }
+div#areaCadastro div#email { width: 32%; }
+div#areaCadastro div#grupoCampo_foneCompleto { width: 46%; }
+div#areaCadastro div#paisFone { width: 30%; }
+div#areaCadastro div#dddFone { width: 10%; }
+div#areaCadastro div#fone { width: 47%; }
+div#areaCadastro div#grupoCampo_celCompleto { width: 46%; }
+div#areaCadastro div#ddiCel { width: 30%; }
+div#areaCadastro div#ddiFone { width: 30%; }
+
+div#areaCadastro div#dddCel { width: 10%; }
+div#areaCadastro div#cel { width: 47%; }
+div#areaCadastro div#grupoCampo_endereco { width: 96%; margin-top: 0; }
+div#areaCadastro div#rua { width: 42%; }
+div#areaCadastro div#num { width: 9%; }
+div#areaCadastro div#compl { width: 16%; }
+div#areaCadastro div#bairro { width: 32%; }
+div#areaCadastro div#cep { width: 17%; }
+div#areaCadastro div#pais { width: 15%; }
+div#areaCadastro div#est { width: 7%; }
+div#areaCadastro div#cid { width: 30%; }
+div#areaCadastro div.grupoCampo label.legenda { background-color: #F0F0F0; }
+
+div#areaCadastro div.botoes a.enviar.desabilitado { opacity: 1; color: transparent; 
+  background-image: url(../img/ico_aguarde3.gif);
+  background-size: 32%; background-color: #F0F0F0; border-color: #CCC; }
+div#areaCadastro div.botoes a.desabilitado:hover { background-color: transparent; }
+
+/***********************************************************************
+  area Cadastro
+***********************************************************************/
+div#areaCadastro.cadAluno div.botoes { bottom: 1.5em; right: 6%; font-size: 1.2em;}
+div#areaCadastro.cadAluno a.enviar { width: auto; height: auto; padding: 0 0.5em; text-decoration: none; font-size: 1.2em;
+  color: #667088; border-radius: 5px; }
+div#areaCadastro.cadAluno a.botPadrao:hover { width: auto; height: auto; padding: 0 0.5em; text-decoration: none; font-size: 1.2em;
+  color: #F0F0F0; border-radius: 5px; background-color: #003366; }
+div#areaCadastro.cadAluno h6.titulo { position: absolute; top: -1.5em; padding: 0.1em 2%; color: white;
+  background-color: #a39494; border: 1px solid #606060; border-bottom: 0; border-radius: 5px 5px 0 0; }
+div#areaCadastro.cadAluno div.aviso.salve { bottom: 2em; right: 50%; padding-bottom: 1em;}
+
+  /***********************************************************************
+    solicitação da senha de acesso
+  ***********************************************************************/
+  div#areaCadastro.pedeSenha div.principal.limpaDepois div.campos {display: grid ;}
+  div#areaCadastro.pedeSenha { padding-bottom: 4em; }
+  div#areaCadastro.pedeSenha div.cadastro { font-size: 1.5em; }
+  div#areaCadastro.pedeSenha div.cadastro input { border-radius: 5px; }
+  div#areaCadastro.pedeSenha input.vazio { background-color: #ff9999; color: #fff; }
+  div#areaCadastro.pedeSenha div.botoes { bottom: 0.5em; top: auto; }
+  div#areaCadastro.pedeSenha a#bot { min-height: 1.6em; min-width: 10%; }
+  div#areaCadastro.pedeSenha a#bot.desab { cursor: default; background-color: transparent; }
+  div#areaCadastro.pedeSenha a#bot.invalid { font-weight: bold; padding-left: 1.7rem; 
+    background: url(img/exclama3.png) no-repeat 1rem center red; background-size: auto 80%; }
+  div#areaCadastro.pedeSenha a#bot.entra { background: url(../img/ico_aguarde3.gif) no-repeat center center; 
+    background-size: auto 80%; }
+  div#areaCadastro.pedeSenha a#bot.invalid:hover { background-color: red; }
+  div#areaCadastro.pedeSenha a#bot.msg { background-color: #0789cf; }
+  div#areaCadastro.pedeSenha div#cpf { width: fit-content; }
+  div#areaCadastro.pedeSenha a.recupSenha { float: left; cursor: pointer; background-color: white; }
+  div#areaCadastro.pedeSenha a.recupSenha:hover { background-color: #003366; }
+
+  /***********************************************************************
+    solicitação do e-mail de recuperaçõ de senha
+  ***********************************************************************/
+  div#areaCadastro.pedeEmail div.principal.limpaDepois div.campos {display: grid ;}
+  div#areaCadastro.pedeEmail { padding-bottom: 4em; }
+  div#areaCadastro.pedeEmail div.cadastro { font-size: 1.4em; }
+  div#areaCadastro.pedeEmail div.cadastro input { border-radius: 5px; }
+  div#areaCadastro.pedeEmail input.vazio { background-color: #ff9999; color: #fff; }
+  div#areaCadastro.pedeEmail div.botoes { bottom: 0.5em; top: auto; }
+  div#areaCadastro.pedeEmail a#bot { min-height: 1.6em; min-width: 10%; }
+  div#areaCadastro.pedeEmail a#bot.desab { cursor: default; background-color: transparent; }
+  div#areaCadastro.pedeEmail a#bot.invalid { font-weight: bold; padding-left: 1.7rem; 
+    background: url(img/exclama3.png) no-repeat 1rem center red; background-size: auto 80%; }
+  div#areaCadastro.pedeEmail a#bot.entra { background: url(../img/ico_aguarde3.gif) no-repeat center center; 
+    background-size: auto 80%; }
+  div#areaCadastro.pedeEmail a#bot.invalid:hover { background-color: red; }
+  div#areaCadastro.pedeEmail a#bot.msg { background-color: #0789cf; }
+  div#areaCadastro.pedeEmail div#cpf { width: fit-content; }
+  div#areaCadastro.pedeEmail div#email { width: 97%; }
+  div#areaCadastro.pedeEmail div#email label.posLabel { position: absolute; bottom: -0.8em; left: 0; 
+      margin: 0; color: #AAA; font-size: 0.7em; }
+  div#areaCadastro.pedeEmail div.aviso.emailVazio { display: block; top: 0; right: 12em; white-space: nowrap; }
+
+  /***********************************************************************
+    lista de cursos, estágios e turmas
+  ***********************************************************************/
+  div#areaCadastro ul.cursos { margin: 0; padding: 0; }
+  div#areaCadastro ul.cursos ul { margin: 0; padding: 0; }
+  div#areaCadastro ul.cursos li { margin: 0; padding: 0; }
+  div#areaCadastro ul.cursos>li { margin-bottom: 2em; border: 1px solid #a8a8a8; 
+    border-radius: 5px 0 0 0; border-width: 1px 0 0 1px; }
+  div#areaCadastro ul.cursos h5 { padding: 0.2em 2%; margin: 0; text-align: left; font-weight: bold; 
+    color: #555; background-color: #98c99c; border-radius: 5px 5px 0 0; }
+  div#areaCadastro ul.cursos span.obj { display: block; margin: 0 0 0.5em 10%; padding-left: 1%; 
+    text-align: left; color: #555; 
+    border: 1px solid #CCC; border-top: 0; border-radius: 0 0 0 5px; }
+  div#areaCadastro ul.cursos ul.estagios { margin-left: 5%; }
+  div#areaCadastro ul.estagios h6 { padding: 0.2em 2%; margin: 0; text-align: left; font-weight: bold; 
+    color: #555; background-color: #DDD; border-radius: 5px 0 0 5px; }
+  div#areaCadastro ul.turmas li div.nome { font-size: 1.2em; font-weight: bold; color: #333; 
+    background-color: #c8d8f6; }
+  div#areaCadastro ul.turmas label { display: block; float: left; clear: both; padding-left: 2%; }
+  div#areaCadastro ul.turmas span { display: block; float: left; margin-left: 1%; }
+  div#areaCadastro ul.turmas span.obj { float: none; border-right: 0; }
+  div#areaCadastro ul.turmas>li { margin: 0 0 0.5em 10%; cursor: pointer; position: relative; 
+    border: 2px solid #90a8d7; border-left-width: 15px; border-radius: 5px; }
+  /*div#areaCadastro ul.turmas>li:hover { background-color: #6692e2; }
+  div#areaCadastro ul.turmas>li:hover div.nome { background-color: #6692e2; }*/
+  div#areaCadastro ul.turmas>li:hover { margin-left: calc(10% - 27px); margin-bottom: calc(0.5em - 4px); 
+    border-color: #4268af; border-width: 4px 4px 4px 40px; }
+  div#areaCadastro ul.turmas>li:hover::before { position: absolute; top: 0; left: -25px; width: 10%; height: 100%; 
+    background: url(../img/ico_portal_seta.svg) no-repeat left center transparent; content: ""; }
+  div#areaCadastro ul.turmas ul.horarios{ text-align: left; padding-left: 3em; background: rgb(227, 202, 170); }
+  div#areaCadastro ul.turmas ul.horarios>li{ padding-left: 4%; }
+  div#areaCadastro ul.turmas>li div.carregando { top: 1.8em; right: 0; margin: 0; padding-left: 12%; background-color: #A7E795;}
+  div#areaCadastro ul.turmas>li div.gravando { top: auto; bottom: 0.2em; right: 2%; width: 65%; }
+  div#areaCadastro ul.turmas>li.mostraValores { cursor: default; margin-left: calc(10% - 27px); margin-bottom: calc(0.5em - 4px); 
+    border-color: #4268af; border-width: 4px 4px 4px 40px; }
+  div#areaCadastro ul.turmas div.valores { position: absolute; top: 1.8em; right: 0; width: 90%; z-index: 10; 
+    background-color: #A7E795; border: 1px solid #555; border-width: 0 0 1px 1px; border-radius: 0 0 0 5px; }
+  div#areaCadastro ul.turmas div.valores h7 { display: block; text-align: left; padding-left: 5%; background-color: #4C9D35; }
+  div#areaCadastro ul.turmas div.valores ul { margin-left: 5%; }
+  div#areaCadastro ul.turmas div.valores li { display: block; clear: both; }
+  div#areaCadastro ul.turmas div.valores input { display: block; float: left; margin-top: 0.3em; cursor: pointer; }
+  div#areaCadastro ul.turmas div.valores label { clear: none; float: none; padding-left: 0; }
+  div#areaCadastro ul.turmas div.valores label.comInput { cursor: pointer; }
+  div#areaCadastro ul.turmas div.valores span { display: block; float: left; }
+  div#areaCadastro ul.turmas div.valores span.valor { font-weight: bold; }
+  div#areaCadastro ul.turmas div.valores div.botoes { position: static; clear: both; padding: 0.3em; height: 2.6em; }
+  div#areaCadastro ul.turmas div.valores a.botPadrao { border-color: #555; cursor: pointer; margin: 0 1%; }
+  div#areaCadastro ul.turmas div.valores a.botPadrao:hover { background-color: #DDD; }
+  div#areaCadastro ul.turmas div.valores label.msgConfirma { clear: both; margin: 0.5em 1% 0 0; text-align: right; font-weight: bold; }
+  div#areaCadastro ul.turmas div.valores div.aviso { text-align: left; padding: 0.7em; bottom: 0; right: 8.5em; font-size: 0.8em; }
+  
+    
+  
+
+
+
