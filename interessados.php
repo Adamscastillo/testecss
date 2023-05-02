@@ -222,30 +222,30 @@
 		}
 
 		// responsável financeiro
-		
-		$resp = (isset($input->resp)) ? ((is_array($input->resp) || is_object($input->resp)) ? $input->resp : json_decode($input->resp)) : [];
-		if (is_object($resp)) $resp = (array) $resp;
+		$resp = (isset($input->resp)) ? $input->resp : [];
+        if (is_string($resp)) $resp = json_decode($resp);
+		$resp = (array) $resp;
 		$nomeResp = "";
 		$emailResp = "";
 		// recupera os dados do usuário enviados
 		if (is_array($resp) && sizeof($resp) > 0) {
 			// recupera os dados do responsável financeiro enviados
-			$nomeResp = recupera($resp, "nome");
-			$nasc = recupera($resp, "nasc");
-			$genero = recupera($resp, "genero");
-			$cpf = recupera($resp, "cpf");
-			$rg = recupera($resp, "rg");
-			$emailResp = recupera($resp, "email", "email");
-			$foneRes = recupera($resp, "foneRes");
-			$foneCel = recupera($resp, "foneCel");
-			$pais = recupera($resp, "pais");
-			$estado = recupera($resp, "estado");
-			$cidade = recupera($resp, "cidade");
-			$rua = recupera($resp, "rua");
-			$num = recupera($resp, "num");
-			$compl = recupera($resp, "compl");
-			$bairro = recupera($resp, "bairro");
-			$cep = recupera($resp, "cep");
+			$nomeResp = (isset($resp["nome"])) ? $resp["nome"] : "";
+			$nasc =(isset($resp["nasc"])) ? $resp["nasc"] : "";
+			$genero = (isset($resp["genero"])) ? $resp["genero"] : "";
+			$cpf = (isset($resp["cpf"])) ? $resp["cpf"] : "";
+			$rg = (isset($resp["rg"])) ? $resp["rg"] : "";
+			$emailResp = (isset($resp["email"])) ? $resp["email"] : "";
+			$foneRes = (isset($resp["foneRes"])) ? $resp["foneRes"] : "";
+			$foneCel = (isset($resp["foneCel"])) ? $resp["foneCel"] : "";
+			$pais = (isset($resp["pais"])) ? $resp["pais"] : "";
+			$estado = (isset($resp["estado"])) ? $resp["estado"] : "";
+			$cidade = (isset($resp["cidade"])) ? $resp["cidade"] : "";
+			$rua = (isset($resp["rua"])) ? $resp["rua"] : "";
+			$num = (isset($resp["num"])) ? $resp["num"] : "";
+			$compl = (isset($resp["compl"])) ? $resp["compl"] : "";
+			$bairro = (isset($resp["bairro"])) ? $resp["bairro"] : "";
+			$cep = (isset($resp["cep"])) ? $resp["cep"] : "";
 			// testa os dados do responsável
 			if (strlen($nomeResp) == 0) retornaErro("nome do responsável financeiro inválido.");
 			if ($pais == '') $pais = 'Brasil';
@@ -261,7 +261,7 @@
 			executa("INSERT INTO usu (id_usu, nome, genero, nasc, username, pass) 
 				VALUES (?, ?, ?, $nasc, ?, ?)", [$idUsuResp, $nomeResp, $genero, $login["user"], $login["pass"]], true);
 			executa("INSERT INTO usu_resp (id_resp, id_usuResp, id_cont, id_usu, financeiro) 
-				VALUES ((SELECT MAX(usu_resp.id_resp) + 1 FROM usu_resp), ?, ?, ?, ?)", [$idUsuResp, 70, $idUsu, 1], true);
+				VALUES ((SELECT MAX(usu_resp.id_resp) + 1 FROM usu_resp), ?, ?, ?, ?)", [$idUsuResp, 70, $idUsuAluno, 1], true);
 			$idLic = $cnx->achaproximo("id_licen", "licenca");
 			executa("INSERT INTO licenca (id_licen, id_usu, id_esc, id_perf, ini, fim, ferInicial, cadastradoEm, cadastradoPor) 
 				VALUES (?, ?, ?, ?, $licIni, $licFim, ?, dbo.fnAgora(), ?)", 
@@ -502,5 +502,6 @@
 		}
 		return array($cidade);
 	}
+	
 	
 ?>
