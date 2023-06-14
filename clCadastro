@@ -1,0 +1,903 @@
+// ***********************************************************************************log(*******************************************
+// Classe que gerencia um Cadastro completo
+// ******************************************************************************************************************************
+function Cadastro(parametros) {
+	this.idElementoBase = 'conteudo'; // pode ser substituído pela instância
+	for (var i in parametros) {
+		this[i] = parametros[i];
+	}
+	this.classeObjeto = 'cadastro';
+	if (!this.item) return;
+	// log(this)
+	//this.botoesOriginal = this.botoes;
+	// faz uma referência à aba que gerou este cadastro
+	var item = this.item;
+	if (!this.naoVinculaComItem) item.conteudo = this;
+	if (!this.aba) {
+		while (item && !item.objCabecalho) item = item.pai.item;
+		if (item) this.aba = item.objCabecalho.aba;
+	}
+	if (!this.campoID) this.campoID = "id";
+	this.ehNovo = ((item && item[this.campoID] && item[this.campoID].toString().substring(0,4) == 'novo') || (this.item && this.item.novo));
+	// por padrao onde estarão os dados para exportação excel vindo do _fx
+	if (!this.dadosExcel) this.dadosExcel = ''; 
+	
+	// se não tiver urlBase setado, para encontrar o urlBase (_fx) tem que subir até a lista
+	if (this.urlBase == undefined) {
+		if (!this.item.pai.item) {
+			this.urlBase = this.item.pai.urlBase;
+		} else {
+			var listaPai = item.pai;
+			while (!listaPai.urlBase) listaPai = listaPai.item.pai;
+			this.urlBase = listaPai.urlBase;
+		}
+	}
+	this.urlBuscaInfo = (this.acaoBusca && this.acaoBusca.toString().indexOf('.php') >= 0) ? this.acaoBusca : ((this.urlBase) ? this.urlBase + '?acao=' + this.acaoBusca : "");
+	if (item && this.urlBuscaInfo) this.urlBuscaInfo += '&id=' + item[this.campoID];
+	
+	if (this.camposNovo && (this.dados.id == 'novo' || (this.item[this.campoID] && this.item[this.campoID].toString().slice(0,4) == 'novo'))) this.campos = this.camposNovo;
+	this.ajustaCampos();
+	
+	if (!this.item) {
+		this.item = [];
+		this.item[this.campoID] = 'novo';
+	}
+	if (this.item[this.campoID] && this.item[this.campoID].toString().substring(0,4) == 'novo') {
+		if (this.buscaNovo && this.buscaNovo.length > 0) {
+			this.buscaDados();
+		} else {
+			this.monta();
+		}
+	} else if (typeof(this.dados) == "object") {
+		this.monta();
+	} else {
+		this.buscaDados();
+	}
+	if (this.trocaValores) this.trocaValores.call(this);
+	this.classeOrigem = 'Cadastro' + this.item[this.campoID];
+	this.ehCadastro = true; // indica este objeto como do tipo "cadastro"
+};
+
+Cadastro.prototype.ajustaCampos = function() {
+	if (this.complementaCampos) this.complementaCampos();
+	// passar o array de campos por valor (para não ficar por referência)
+	// cria uma cópia da lista de campos da definição para poder replicar sem alterar o original
+	var campos = [];
+	// cria um direcionamento direto para cada campo a partir do cadastro (para uso em outros métodos)
+	this.camposID = {};
+	if (this.campos) {
+		for (var i = 0; i < this.campos.length; i++) {
+			// se existe o campo, coloca no this.campos
+			if (this.campos[i]) {
+				var objCampo = {};
+				for (var prop in this.campos[i]) objCampo[prop] = this.campos[i][prop];
+				campos.push(objCampo);
+				this.camposID[this.campos[i].id] = objCampo;
+			}
+		}
+	}
+	this.campos = campos;
+	// faz o mesmo tratamento para o gruposCampos
+	var gruposCampos = [];
+	this.gruposCamposID = {};
+	if (this.gruposCampos) {
+		for (var i = 0; i < this.gruposCampos.length; i++) {
+			var objCampo = {};
+			for (var prop in this.gruposCampos[i]) objCampo[prop] = this.gruposCampos[i][prop];
+			gruposCampos.push(objCampo);
+			this.gruposCamposID[this.gruposCampos[i].id] = objCampo;
+		}
+	}
+	this.gruposCampos = gruposCampos;
+};
+
+Cadastro.prototype.buscaDados = function() {
+	var esteCadastro = this;
+	var urlBusca = (this.item[this.campoID] && this.item[this.campoID].toString().substring(0,4) == 'novo' && this.buscaNovo) ? this.buscaNovo : this.urlBuscaInfo;
+	//this.abaBuscada = this.aba.id;
+	new cnx.carrega(urlBusca, function() { esteCadastro.retornaCadastro.call(esteCadastro, this.resposta); } );
+	this.aviso = new clAviso( { avisos: { aviso: fnLang("carregando") + "..." }, textoTit: fnLang("porFavorAguarde"), comEspera: 'gr', classe: 'carregandoMain' } );
+	if (this.item.cabecalho) this.item.cabecalho.appendChild(this.aviso.cria());
+	this.aviso.mostra();
+};
+
+Cadastro.prototype.retornaCadastro = function(dados) {
+	if (this.aviso) this.aviso.fecha();
+	this.dados = jQuery.parseJSON(dados);
+	if (this.item[this.campoID] == this.dados.id) this.monta();
+};
+
+Cadastro.prototype.monta = function() {
+	if (this.descarregado) return;
+	//this.item.alterado = false;
+	if (this.divDialog && !(this.divDialog instanceof jQuery)) {
+		// se tiver divDialog com os parâmetros para criar um dialog, coloca o cadastro dentro do dialog criado
+		this.divDialog = this.criaDialog(this.divDialog);
+		this.onde = this.divDialog[0];
+	} else if (!this.onde) {
+		//if (obj('conteudo')) removeObj(obj('conteudo'));
+		// this.onde = obj('main').appendChild(cria('div', { id: 'conteudo' }));
+		if (obj(this.idElementoBase) && !this.naoLimpaConteudo) removeObj(obj(this.idElementoBase));
+		var main = (this.item.elementoAlvo) ? this.item.elementoAlvo : obj('main');
+		this.onde = main.appendChild(cria('div', { id: this.idElementoBase }));
+	}
+
+	this.onde = this.onde.appendChild(cria('div', { className: 'principal limpaDepois' }));
+	this.montaPrincipal();
+	$("#carregaCadastro").fadeOut(1500, function() { removeObj(this) });
+
+	// tirada a habilitação automática dos botões. Apenas nas ações específicas é que eles são habilitados. Manter em observação. Sergio março/2016
+	//this.botsOn();
+	
+	// se algum campo tiver a propriedade change e não for função de gravar, chama após ter carregado os valores do banco
+	for (var i = 0; i < this.campos.length; i++) {
+		var esteCampo = this.campos[i].objetoCampo;
+		if (esteCampo.change && esteCampo.change != 'testaGravacao') esteCampo.mudouOption.call(esteCampo);
+	}
+	return this.onde;
+};
+
+Cadastro.prototype.montaPrincipal = function() {
+	var campoFoco;
+	this.onde.appendChild(cria('div', { className: 'separador' }));
+	this.divCampos = cria('div', { className: 'campos' });
+	this.divCadastro = cria('div', { className: 'cadastro' });
+	if (this.titulo) this.divCadastro.appendChild(cria('h4', { className: 'titulo', innerHTML: this.titulo }));
+	// existe a opção de montar o cadastro a partir de um template ou a partir de uma lista de campos
+	// por enquanto ou utiliza um ou o outro, depois deveremos analisar como unificar os dois modelos 
+	// para aproveitar os benefícios de ambos (flexibilidade do template e métodos dos campos)
+	if (this.antesMontar) this.antesMontar();
+	// informa para o clBotoes se é um novo registro ou não. 
+	// usado para montar a lista de botões de maneira adequada para as situações de cadastro e edição
+	this.foiAlterado = false;
+	this.objBotoes = new clBotoes(this, this.ehNovo);
+	if (this.templateVisualizacao) {
+		$.tmpl(this.templateVisualizacao, this.dados).appendTo(this.onde); // template pré-renderizado (utilizando o $.template())
+		//$(this.templateVisualizacao).tmpl(this.dados).appendTo(this.onde); // template html
+	} else {
+		for (var i = 0; i < this.campos.length; i++) this.incluiCampo(this.campos[i]);
+	}
+	$("<div class='limpa'></div>").appendTo(this.divCampos);
+	this.divCadastro.appendChild(this.divCampos);
+	this.onde.appendChild(this.divCadastro);
+	if (this.gruposCampos) this.montaGruposCampos();
+	
+	// colocado para funcionar o clear no IE8 (não funciona o :after da classe limpaDepois)
+	// como não funcionou o _IE8, foi colocado par todos, mas seria bom rever depois que voltar a funcionar
+	//if (_IE8) this.onde.appendChild(cria('div', { className: 'limpa' }));
+	this.onde.appendChild(cria('div', { className: 'limpa' }));
+
+	// troca as tags dos campos para tags de visualização
+	for (var i = 0, t = this.campos.length; t--; i++) this.campos[i].objetoCampo.trocaTag();
+	// coloca a classe de visualização
+	this.trocaVisu();
+	// se for para começar editando, troca pela edição
+	//if ((this.iniciaEditando || this.ehNovo) && this.perm > 1) this.edita();
+	if (this.iniciaEditando || this.ehNovo) this.edita();
+	
+	if (this.dados && this.dados.id && this.ehNovo && this.aposIncluir) this.aposIncluir();
+	if (this.aposMontar) this.aposMontar();
+	// se for novo e tiver um campo selecionado para receber o foco inicial, foca	
+	if (this.ehNovo && campoFoco) campoFoco.focus();
+	if (typeof(tela) != 'undefined') tela.ajusta();
+};
+
+Cadastro.prototype.incluiCampo = function(campo, grupoCampo) {
+	if (campo.tipo) {
+		var objetoCampo = eval(campo.tipo);
+		campo.objetoCampo = new objetoCampo(campo, this);
+		if (!this.permissao('editar')) campo.objetoCampo.desabilitado = true; //só esta funcionando em cadastros
+		if (campo.tipo != CampoSemCampo) {
+			var divCampo = campo.objetoCampo.cria();
+			if (divCampo) {
+				if (grupoCampo) {
+					var divGrupo = this.gruposCamposID[grupoCampo].objDom;
+					divGrupo.insertBefore(divCampo, divGrupo.childNodes[divGrupo.childNodes.length - 1]);
+				} else {
+					this.divCampos.appendChild(divCampo);
+				}
+			}
+		}
+		if (campo.foco) campoFoco = campo.objetoCampo.campo;
+		if (campo.objetoCampo.aposColocarDOM) campo.objetoCampo.aposColocarDOM.call(campo.objetoCampo);
+	} else {
+		campo.objetoCampo = { valor: campo.valor, campo: {}, trocaTag: function(){}, validaCampo:function(){} };
+	}
+	if (typeof(this.camposID[campo.id]) == "undefined") this.camposID[campo.id] = campo.objetoCampo;
+};
+
+Cadastro.prototype.montaGruposCampos = function() {
+	var este = this;
+	for (var contGrupo = 0, totGrupos = this.gruposCampos.length; totGrupos--; contGrupo++) {
+		var grupo = this.gruposCampos[contGrupo];
+		var divGrupo = grupo.divGrupo = cria('div', { id: "grupoCampo_" + grupo.id, className: 'grupoCampo' });
+		if (grupo.classeEspecial) colocaClasse(divGrupo, grupo.classeEspecial);
+		if (grupo.naoClear) colocaClasse(divGrupo, 'naoClear');
+		if (grupo.legenda) divGrupo.appendChild(cria('label', { className: 'legenda' }, null, grupo.legenda));
+		if (grupo.abrefecha) {
+		//	log(grupo.abrefecha, typeof(grupo.abrefecha));
+			divGrupo.appendChild(cria('a', { className: 'abrefecha', title: (((grupo.fechado)) ? "exibe" : "oculta") + ((grupo.tip) ? " " + grupo.tip : ((grupo.legenda) ? " " + grupo.legenda : "")) }));
+			$(divGrupo).on("click", "a.abrefecha", { funcao: grupo.abrefecha }, function(e) { este.abrefechaGruposCampos.call(este, e) });
+			if (grupo.fechado) colocaClasse(divGrupo, "fechado");
+		}
+		grupo.objCampos = [];
+		if (!grupo.campos) grupo.campos = [];
+		for (var contCampo = 0, totCampos = grupo.campos.length; totCampos--; contCampo++) {
+			var campo = this.camposID[grupo.campos[contCampo]];
+			if (campo) {
+				var divCampo = campo.objetoCampo.elementoDiv;
+				if (divCampo) divGrupo.appendChild(divCampo);
+				grupo.objCampos.push(campo.objetoCampo);
+			} else {
+				// não encontrou o campo, verifica se é um grupoCampo
+				var campo = this.gruposCamposID[grupo.campos[contCampo]];
+				if (campo) {
+					var $campoGrupo = $(campo.objDom);
+					// se tem um div.limpa antes do div do grupo, leva junto pra dentro do novo grupo
+					if ($campoGrupo.prev().is(".limpa")) divGrupo.appendChild($campoGrupo.prev()[0]);
+					divGrupo.appendChild(campo.objDom);
+					grupo.objCampos.push(campo.objDom);
+				}
+			}
+		}
+		if (grupo.dica) divGrupo.appendChild(cria('div', { className: 'dica', htmlFor: this.idCampo, innerHTML: grupo.dica }));
+		divGrupo.appendChild(cria('div', { className: 'limpa' }));
+		grupo.objDom = divGrupo;
+		if (grupo.objCampos.length > 0 || grupo.colocaMesmoVazio) {
+			if (grupo.colocaAntesCampo && (this.camposID[grupo.colocaAntesCampo] || this.gruposCamposID[grupo.colocaAntesCampo])) {
+				// pode ser antes de um div de campo ou antes de um div de grupo 
+				// (nesse caso coloca antes do div limpa que vem antes do campo)
+				var divCampo = (this.camposID[grupo.colocaAntesCampo]) 
+					? this.camposID[grupo.colocaAntesCampo].objetoCampo.elementoDiv 
+					: this.gruposCamposID[grupo.colocaAntesCampo].objDom.previousSibling;
+				if (!grupo.naoClear) this.divCampos.insertBefore(cria('div', { className: 'limpa' }), divCampo);
+				this.divCampos.insertBefore(divGrupo, divCampo);
+			} else {
+				var $divCampos = $(this.divCampos);
+				if ($divCampos.children().last().is(".limpa")) $divCampos.children().last().remove();
+				if (!grupo.naoClear) $("<div class='limpa'></div>").appendTo($divCampos);
+				$divCampos.append(divGrupo);
+				if (!grupo.naoClear) $("<div class='limpa'></div>").appendTo($divCampos);
+			}
+		}
+	}
+};
+
+Cadastro.prototype.abrefechaGruposCampos = function(evento) {
+	const divGrupo = (evento.tagName) ? $(evento) : $(evento.target).closest("div.grupoCampo");
+	// se for grupo multiDesc não abre se o campo estiver desabilitado
+	if (divGrupo.hasClass("multiDesc") && divGrupo.find("div.campo").first().hasClass("desabilitado")) return;
+	const a = divGrupo.find("a.abrefecha");
+	var title = a.attr("title");
+	if (evento.data && typeof(evento.data.funcao) == "function") {
+		evento.data.funcao.call(this);
+	} else {
+		if (divGrupo.hasClass("fechado")) {
+			// abre
+			divGrupo.removeClass("fechado");
+			a.attr("title", title.replace("exibe", "oculta"));
+		} else {
+			// fecha
+			divGrupo.addClass("fechado");
+			a.attr("title", title.replace("oculta", "exibe"));
+		}
+	}
+	if (this.aposAbreFechaGruposCampos) this.aposAbreFechaGruposCampos.call(this, divGrupo, evento);
+};
+
+Cadastro.prototype.remonta = function() {
+	var novoDivOnde = this.onde.parentNode;
+	removeObj(this.onde);
+	this.onde = novoDivOnde;
+	this.dados = this.dadosRetorno;
+	this.monta();
+};
+
+Cadastro.prototype.inverteAbreFecha = function(funcaoAposFechar) {
+	// a classe "aberto" fica no LI
+	if (this.tempoAbertura == undefined) this.tempoAbertura = 200;
+	$(this.onde.parentNode).toggleClass('aberto', this.tempoAbertura, funcaoAposFechar); 
+	this.aberto = !this.aberto;
+};
+
+Cadastro.prototype.abre = function() {
+	if (this.antesAbrirDetalhes) this.antesAbrirDetalhes.call(this);
+	this.inverteAbreFecha();
+	if (this.acaoDetalhes && !this.carregouDetalhes) {
+		this.buscaMaisDados();
+	} else {
+		this.remontaPrincipal();
+		if (this.montaAberto) this.montaAberto();
+	}
+};
+
+Cadastro.prototype.fecha = function(funcaoAposFechar) {
+	this.inverteAbreFecha(funcaoAposFechar);
+	this.remontaPrincipal();
+	if (this.fechaAberto) this.fechaAberto();
+	this.carregandoDetalhes = undefined;
+};
+
+Cadastro.prototype.buscaMaisDados = function() {
+	// coloca o "carregando..."
+	esteCadastro = this;
+	var id = (this.dados && this.dados.id) ? this.dados.id : this.item[this.campoID];
+	var urlDetalhes = this.urlBase + "?acao=" + this.acaoDetalhes + "&id=" + id;	
+	this.avisoCarregando = new clAviso( { avisos: { aviso: fnLang("carregando") + "..." }, comEspera: 'pq', classe: 'carregandoDetalhes' } );
+	$(this.onde).prepend(this.avisoCarregando.cria());
+	this.avisoCarregando.mostra();	
+	new cnx.carrega(urlDetalhes, function() { esteCadastro.retornaMaisDados.call(esteCadastro, this.resposta); });
+};
+
+Cadastro.prototype.retornaMaisDados = function(dados) {
+	// testa se ainda é para mostrar, senão não mostra nada
+	this.avisoCarregando.fecha();
+	//this.inverteAbreFecha();
+	if (!this.aberto) return;
+	var dados = jQuery.parseJSON(dados);	
+	// complementa os dados deste cadastro
+	for (var i in dados) this.dados[i] = dados[i];
+	this.remontaPrincipal();
+	if (this.montaAberto) this.montaAberto();
+	this.carregouDetalhes = true;
+};
+
+Cadastro.prototype.remontaPrincipal = function() {
+	tiraClasse(this.onde, 'visualizacao');
+	if (this.templateVisualizacao) {
+		// exclui o elemento que contem o template (que será recriado)
+	} else {
+		limpaConteudo(this.onde);
+		// exclui os elementos dos campos
+		for (var i = 0; i < this.campos.length; i++) {
+	//		removeObj(this.campos[i].objetoCampo.elementoDiv);
+			delete this.campos[i].objetoCampo;
+		}
+	}
+	this.montaPrincipal();
+};
+
+Cadastro.prototype.testaExclusao = function() {
+	var esteCadastro = this;
+	var itemOriginal = this.item;
+	if (this.dados.id.toString().substring(0,4) == 'novo') {
+		//var onde = (this.objTipo == 'colecao') ? this.item.li : this.onde;
+		var onde;
+		if (this.objTipo == 'colecao') {
+			onde = this.item.li;
+			if (this.item.pai.limitaNovoItem)  {
+				if (this.item.pai.botaoIncluir) botao.habilita(this.item.pai.botaoIncluir);
+				var botoesAba = this.item.pai.abaClicada.botoes;
+				for (var i = 0, t = botoesAba.length; t--; i++) {
+					if (botoesAba[i].tipo == 'incluir') { 
+						botoesAba[i].objBotao.habilita(); // achou o botão de incluir, então habilita.
+						break;
+					}
+				}
+			}
+		} else {
+			onde = this.onde;
+		}
+		$(onde).slideUp(300, function() {
+			if (esteCadastro.antesDeExcluir && !esteCadastro.antesDeExcluir.call(esteCadastro)) return;
+			temAlteracao.retiraAlterado(esteCadastro);			
+			$(this).remove();
+		});
+		//if (this.objTipo == 'colecao'  && itemOriginal.pai.excluiAbreNovo) itemOriginal.pai.novoItem();			
+		if (this.aposExcluir) this.aposExcluir();
+		return;
+	}
+	if (!this.excluiSemConfirmacao) {
+		var textoTit = (typeof(this.avisoExcluir) == "function") ? this.avisoExcluir() : (this.avisoExcluir || fnLang("avisoExcluir"));
+		this.avisoSeExclui = new clAviso({ 
+			avisos: [
+				{ aviso: fnLang("sim"), 
+					funcao: function() { 
+						if (esteCadastro.antesDeExcluir && !esteCadastro.antesDeExcluir.call(esteCadastro)) return;
+						esteCadastro.excluirCadastro.call(esteCadastro);
+					}
+				},
+				{ aviso: fnLang("nao"), 
+					funcao: function() {
+						esteCadastro.cancelaExclusao.call(esteCadastro);
+						for (var i = 0; i < esteCadastro.item.li.childNodes.length; i++) {
+							if (temClasse(esteCadastro.item.li.childNodes[i], 'botao')) botao.habilita(esteCadastro.item.li.childNodes[i]);
+						}
+					}
+				}
+			],
+			qst: true,
+			temFechar: true,
+			classe: 'excluir',
+			textoTit: textoTit
+		});
+		var baseAviso = (this.baseAviso) ? this.baseAviso : ((this.objTipo == 'lista') ? ((this.item.cabecalho) ? (this.item.cabecalho) : this.item.pai.item.cabecalho) : this.onde);
+		baseAviso.appendChild(this.avisoSeExclui.cria());
+		this.avisoSeExclui.mostra();
+	} else {
+		if (esteCadastro.antesDeExcluir && !esteCadastro.antesDeExcluir.call(esteCadastro)) return;
+		esteCadastro.excluirCadastro.call(esteCadastro);
+	}
+};
+
+Cadastro.prototype.excluirCadastro = function() {
+	var esteCadastro = this;
+	// passa pelos campos para descobrir de qual tabela deve ser excluido
+	var tabelasDel = [];
+	// se tiver o parâmetro chave, pega todas as tabelas cuja chave é 'pk' para excluir
+	if (this.chave) for (var tab in this.chave) if (this.chave[tab] == 'pk') tabelasDel.push(tab);
+	// se tiver chave como "pk", procura no refExt se tem o id desta tabela, senão é o id normal do item mesmo
+	var id = 0;
+	if (tabelasDel.length > 0 && this.refExt) for (var tab in this.refExt) if (tab == tabelasDel[0]) id = this.refExt[tab];
+	if (id == 0) id = (this.dados && this.dados.id) ? this.dados.id : this.item[this.campoID];
+	// se não tiver nenhuma chave com 'pk', passa pelos campos e pega todas as tabelas que têm campos no cadastro
+	if (tabelasDel.length == 0) {
+		for (var i = 0; i < this.campos.length; i++) {
+			var tab = this.campos[i].tab;
+			if (tab) {
+				var jatem = false;
+				for (var j = 0; j < tabelasDel.length; j++) if (tabelasDel[j] == tab) { jatem = true; break; }
+				if (!jatem) tabelasDel.push(tab);
+			}
+		}
+	}
+	if (this.ajustaTabDel) {
+		var retorno = this.ajustaTabDel();
+		tabelasDel = retorno[0];
+		id = retorno[1];
+	}
+	var urlExclui = (this.urlExclui) ? this.urlBase + '?' + this.urlExclui + '&' : 'func/grava_fx.php?';
+	if (this.retornoExclusao) urlExclui += "&urlRetorno=" + this.retornoExclusao;
+	var url = urlExclui + "&id=" + id + '&grava=true';
+	// passa a aba acessada
+	if (this.aba && this.aba.id) url += "&idAba=" + this.aba.id;
+	var info = "del=" + tabelasDel.join(',');
+	var referenciaExterna = (this.refExt) ? this.refExt : {};
+	if (this.transfereExclusao) referenciaExterna["transfere"] = this.transfereExclusao;
+	if (!jQuery.isEmptyObject(referenciaExterna)) info += '&refExt=' + JSON.stringify(referenciaExterna);
+	//var url = this.urlBase + '?' + this.urlExclui + "&id=" + id + "&objetoVolta=" + id;
+	new cnx.carrega(url, function() { esteCadastro.retornaExclusao.call(esteCadastro, this.resposta) }, null , 'POST', info);
+	
+	this.avisoExclui = new clAviso( { avisos: { aviso: 'excluindo...' }, textoTit: fnLang("porFavorAguarde"), comEspera: 'pq' } );
+	var baseAviso = (this.baseAviso) ? this.baseAviso : ((this.objTipo == 'lista') ? '#cabecalho' : this.onde);
+	$(this.avisoExclui.cria()).appendTo(baseAviso);
+	if (!this.excluiSemConfirmacao && this.avisoSeExclui) this.avisoSeExclui.fecha();
+	this.avisoExclui.mostra();
+	this.botsOff();
+};
+
+Cadastro.prototype.cancelaExclusao = function() {
+	if (!this.excluiSemConfirmacao) {
+		this.avisoSeExclui.fecha();
+	}
+};
+
+Cadastro.prototype.retornaExclusao = function(dadosRetorno) {
+	var retorno = jQuery.parseJSON(dadosRetorno); // utiliza o id do retorno para saber se a exclusão teve sucesso
+	//if (!retorno.id || retorno.id != this.dados.id) alert('erro na exclusão!'); se der erro envia um e-mail automático para o KAITS e informa o cliente.
+	
+	if (this.avisoExclui) this.avisoExclui.fecha();
+	var itemOriginal = this.item;
+	if (itemOriginal.exclui) itemOriginal.exclui.call(itemOriginal);
+	var pai = itemOriginal.pai;
+	if (this.objTipo == 'colecao') {
+		this.botsOn();
+		if ((pai.dados.length < 1 || (pai.dados.lista && pai.dados.lista.length < 1) ) 
+			&& pai.iniciaComNovo && !pai.iniciaComNovoSempre) pai.novoItem();
+	} else if (this.objTipo == 'lista') {
+		pai.incluiNovo();
+	}
+	temAlteracao.retiraAlterado(this);
+	if (this.aposExcluir) this.aposExcluir(retorno);
+	
+	if (retorno["msgGrava"]) $("<div>" + retorno["msgGrava"] + "</div>").dialog().dialog("open");
+};
+
+Cadastro.prototype.testaGravacao = function(vemDaAba) { 
+	if (this.avisoNaoGrava) this.avisoNaoGrava.fecha();
+	if (!this.editando) return false;
+	var avisos = [];
+	for (var i = 0; i < this.campos.length; i++) this.campos[i].objetoCampo.validaCampo(avisos);
+
+	if (this.testaVindi) avisos[0] = { aviso: this.msgVindi };
+	if (avisos.length == 0) {
+		if (vemDaAba == 'vemDaAlteracao') return true;
+		else return this.grava();
+	} else {
+		if (temAlteracao.box) temAlteracao.box.dialog("close");
+		this.avisoNaoGrava = new clAviso( { avisos: avisos, tempoAberto: 999999999, temFechar: true, textoTit: 'para gravar por favor verifique:' } );
+		var baseAviso = (this.baseAviso) ? this.baseAviso : ((this.objTipo == 'lista') ? this.item.cabecalho : this.onde);
+		baseAviso.appendChild(this.avisoNaoGrava.cria());
+		this.avisoNaoGrava.mostra();	
+		return false;
+	}
+};
+
+Cadastro.prototype.edita = function() {
+	this.editando = true;
+	this.montaEdicao();
+	this.trocaVisu();
+	if (this.aposEditar) this.aposEditar();
+};
+
+Cadastro.prototype.volta = function() {
+	log("aqui")
+	this.editando = false;
+	this.montaEdicao();
+	this.trocaVisu();
+	temAlteracao.retiraAlterado(this);
+	this.objBotoes.desabilita('gravar');
+	this.foiAlterado = false;
+	if (this.aposVoltar) this.aposVoltar();
+};
+
+Cadastro.prototype.limpaResp = function() {
+	
+    
+	
+	
+	// this.montaEdicao();
+	// this.trocaVisu();
+	// temAlteracao.retiraAlterado(this);
+	// this.objBotoes.desabilita('gravar');
+	// this.foiAlterado = false;
+	// if (this.aposVoltar) this.aposVoltar();
+};
+
+Cadastro.prototype.camposAlterados = function(retornaArray) {
+	var listaCamposAlterados = [];
+	for (var i = 0; i < this.campos.length; i++) {
+		if (this.campos[i].vinculo) {
+			var esteCampo = this.campos[i].objetoCampo;
+			for (var j = 0; j < this.campos.length; j++) {
+				if (this.campos[j].id == this.campos[i].vinculo) {
+					var campoPai = this.campos[j].objetoCampo;
+					campoPai.desfoca.call(campoPai);
+					if (esteCampo.valor && campoPai.valor) {
+						campoPai.valor += this.campos[i].juntaVinculo + esteCampo.valor;
+						campoPai.fixaValor = true;
+					}
+				}
+			}
+		}
+	}
+	// para ser incluido nos camposAlterados o campo precisa ter o atributo "valor" 
+	// e ele tem que ser diferente do valor original (a não ser que seja um cadastro novo)
+	var tabelasAlteradas = {};
+	var camposComGravaSeAlterouTabela = [];
+	for (var i = 0; i < this.campos.length; i++) {
+		var campo = this.campos[i];
+		var objCampo = campo.objetoCampo;
+		if (objCampo) {
+			var valor = objCampo.foiAlterado();
+			if (valor) {
+				tabelasAlteradas[campo["tab"]] = true;
+				listaCamposAlterados.push(valor); 
+			}
+			if (objCampo.gravaSeAlterouTabela && objCampo.cmp != "naoGrava") camposComGravaSeAlterouTabela.push(objCampo);
+		}
+	}
+	for (var i = 0; i < camposComGravaSeAlterouTabela.length; i++) {
+		var objCampo = camposComGravaSeAlterouTabela[i];
+		var jaTemNaLista = false;
+		for (var k = 0; k < listaCamposAlterados.length; k++) {
+			if (listaCamposAlterados[k].cmp == objCampo.cmp) {
+				var jaTemNaLista = true;
+				break;
+			} 
+		}		
+		if (tabelasAlteradas[objCampo.tab] && !jaTemNaLista) {
+			//coloco o campo com gravaSeAlterouTabela
+			if (!objCampo.valor) objCampo.pegaValor();
+			var novoCampo = objCampo.dadosGravacaoCampo();
+			listaCamposAlterados.push(novoCampo); 
+		}
+	}
+	//log(listaCamposAlterados);
+	return (retornaArray) ? listaCamposAlterados : JSON.stringify(listaCamposAlterados);
+};
+
+Cadastro.prototype.enviaCamposArquivo = function(urlGrava) {
+	var esteCadastro = this;
+	var arquivosParaEnviar = [];
+	for (var i = 0; i < this.campos.length; i++) {
+		var campo = this.campos[i];
+		var objCampo = campo.objetoCampo;
+		if (objCampo && objCampo.cmp && objCampo.foiAlterado() && objCampo.tipoCampo == "arquivo") arquivosParaEnviar.push(objCampo);
+	}
+	// se não tiver nenhum campo arquivo, retorna false para completar a gravação pelo método grava mesmo
+	if (arquivosParaEnviar.length == 0) return false;
+	// coloca os campos de arquivo em um form, junto com o info e o urlGrava e envia para o upload_fx
+	var estilo = { "frame": { "display": "none" }, "form": "visibility: hidden", "input": "" };
+	// para visualizar o retorno da página upload_fx.php (desenvolvimento) descomentar a linha abaixo
+	//	var estilo = { "frame": { "width": "800px", "height": "15em", "display": "block" }, "form": "font-size:13px;height:400px", "input": "width: 300px" };
+	
+	// cria o iFrame para receber o retorno da gravação e repassar para o cadastro
+	var frameUpload = obj('frameUpload');
+	if (!frameUpload) frameUpload = document.body.appendChild(cria('iframe', { id: 'frameUpload', NAME: 'frameUpload' }, estilo.frame));
+	$(frameUpload).load(function() {
+		var document = this.contentDocument || this.contentWindow.document;
+		var retorno = document.body.innerHTML;
+		var ts = retorno.split("|ts|");
+		if (ts.length > 1) {
+			ts[1] = ts[1].toString().replace("AWS", "").replace("LWB", "").replace("LCL", ""); // Amazon, Locaweb, Local
+			if (_tempoSessao) _tempoSessao.reinicia(ts[1]);
+			retorno = ts[0] + ts[2];
+		}
+		if (retorno.substring(0, 4) == "erro") retorno = JSON.stringify({ "id": esteCadastro.dados.id, "erro": retorno });
+		esteCadastro.retornaGravacao.call(esteCadastro, retorno);
+	});
+	
+	// monta o form para enviar os arquivos
+	var action = "func/upload_fx.php?idPagina=" + queryString("pag") + "&ts=" + new Date().getTime() + "&ie=" + codBasic(_quem[0]);
+	var formEnvio = $("<form method='POST' action='" + action + "' enctype='multipart/form-data' target='frameUpload' style='" + estilo.form + "'></form>");
+	// coloca os dados que serão repassados ao grava_fx
+	$("<textarea name='urlGrava'>" + urlGrava + "</textarea>").appendTo(formEnvio);
+	var dados = this.camposAlterados(false).replace(/\\n/gi, "<br>"); // tem que alterar a quebra de linha para repassar ao grava corretamente
+	$("<textarea name='dados'>" + dados + "</textarea>").appendTo(formEnvio);
+	if (this.refExt) $("<textarea name='refExt'>" + JSON.stringify(this.refExt) + "</textarea>").appendTo(formEnvio);
+	if (this.valoresFixos) $("<textarea name='valoresFixos'>" + JSON.stringify(this.valoresFixos) + "</textarea>").appendTo(formEnvio);
+	// passa os campos para dentro do form
+	//	console.log(arquivosParaEnviar);
+	for (var i = 0; i < arquivosParaEnviar.length; i++) {
+		var objCampo = arquivosParaEnviar[i];
+		$(objCampo.campo).attr("name", "arquivo").attr("style", estilo.input).appendTo(formEnvio);
+		if (objCampo.pasta) $("<textarea name='pasta'>" + objCampo.pasta + "</textarea>").appendTo(formEnvio);
+		if (objCampo.dirEsc) $("<textarea name='dirEsc'>1</textarea>").appendTo(formEnvio);
+		var defNome = "";
+		if (objCampo.nomeID) defNome = this.item.id; 
+		if (defNome && objCampo.exten) defNome += "." + objCampo.exten;
+		if (defNome && defNome.length > 0) $("<textarea name='defNome'>" + defNome + "</textarea>").appendTo(formEnvio);
+	}
+	// envia o form
+	formEnvio.appendTo("body").submit();
+	// volta os campos para seus respectivos lugares
+	for (var i = 0; i < arquivosParaEnviar.length; i++) {
+		var objCampo = arquivosParaEnviar[i];
+		$(objCampo.campo).removeAttr("name").removeAttr("style").appendTo(objCampo.elementoDiv);
+	}
+	// remove o form
+	formEnvio.remove();
+	// retorna true porque completou a gravação pelo upload, e não continua pelo método grava
+	return true;
+};
+
+Cadastro.prototype.grava = function() {
+	if (this.antesDeGravar) var retornoAntesGravar = this.antesDeGravar();
+	if (this.naoGrava) return false;
+	var info = this.camposAlterados(false);
+	//log(info);
+	// se o info estiver vazio nao manda nada para o grava 
+	if (info.length < 3) return false;
+	//log(info);
+	// tem algum motivo para este teste estar neste método e não no testaGravação? (por causa do info?)
+	if (this.naoVazio) { 
+		var colocaAviso = 0;
+		var listaArray = jQuery.parseJSON(info);
+		for (var i = 0, total = listaArray.length; total--; i++) {        
+			var objJson = listaArray[i];
+			if (objJson.val && objJson.val.toString().trim().length == 0) {
+				colocaAviso++;
+			}
+		}
+		if (!objJson || ( colocaAviso == info.length)) {
+			this.avisoNaoGrava = new clAviso({
+				avisos: { aviso: fnLang("campoPreenc") },
+				tempoAberto: 4000,
+				temFechar: true,
+				textoTit: fnLang("atencao") + ": ",
+				classe: 'naoVazio'
+			});
+			var baseAviso = (this.baseAviso) ? this.baseAviso : ((this.objTipo == 'lista') ? this.item.cabecalho : this.onde);
+			baseAviso.appendChild(this.avisoNaoGrava.cria());			
+			this.avisoNaoGrava.mostra();
+			this.veioAlteracao = false;
+			return;
+		}
+	}
+	info = 'dados=' + escape(info.replace(/\\n/gi,"<br />"));
+	if (this.refExt) info += '&refExt=' + JSON.stringify(this.refExt);
+	if (this.valoresFixos) info += '&valoresFixos=' + JSON.stringify(this.valoresFixos);
+	var id = (this.dados && this.dados.id) ? this.dados.id : this.item[this.campoID];
+	// string completa da urlRetorno, verificando onde deve buscar
+	var urlRetorno = (this.urlBuscaInfo) ? ((this.acaoBusca && this.acaoBusca.toString().indexOf('.php') >= 0) ? this.urlBuscaInfo : "../" + this.urlBuscaInfo) : "";
+	if (this.prefixoRetorno) urlRetorno = this.prefixoRetorno + urlRetorno;
+	// tirando o &id=... do urlRetorno;
+	urlRetorno = urlRetorno.replace(/&{0,1}id=[^&]*/gi, '').replace(/\?&/gi, '?').replace(/\?$/gi, '');
+	if (this.complementoRetorno) urlRetorno += this.complementoRetorno;
+	urlRetorno = urlRetorno.replace(/\&/gi, "|eComercial|");
+	// string completa da gravação, sem parametros
+	// var urlGrava = (this.urlGrava) ? this.urlBase + '?' + this.urlGrava + '&' : 'func/grava_fx.php?';
+	var urlGrava;
+	if (this.urlGrava) { // verifica se tem url local para gravar os dados
+		if (this.urlGrava.indexOf('.php') >= 0) { // verifica se foi passado o caminho completo ( página + paramêtros )
+			urlGrava = this.urlGrava + '&';
+		} else { // se foi só passado os parâmetros, utiliza a urlBase como página
+			urlGrava = this.urlBase + '?' + this.urlGrava + '&';
+		}
+	} else { // senão utiliza o grava padrao do sistema
+		urlGrava =  'func/grava_fx.php?';
+	}
+	// string definitiva da gravação
+	urlGrava += "id=" + id + "&grava=true";
+	if (this.gravarLog) urlGrava += "&gravarLog=1";
+	// passa a aba acessada
+	if (this.aba && this.aba.id) urlGrava += "&idAba=" + this.aba.id;
+	if (!this.semRetornoGravacao) urlGrava += "&urlRetorno=" + urlRetorno;
+	if (this.incluiGravaGet) Object.keys(this.incluiGravaGet).map(
+		(chave) => urlGrava += "&" + chave + "=" + this.incluiGravaGet[chave]);
+	if (this.incluiGravaPost) Object.keys(this.incluiGravaPost).map(
+		(chave) => info += "&" + chave + "=" + this.incluiGravaPost[chave]);
+	var esteCadastro = this;
+	var dadosGravacao = true;
+	// se tiver camposArquivo, vai enviar os dados pelo upload_fx
+	if (!this.enviaCamposArquivo(urlGrava.replace("func/", ""), info)) {
+		if (this.naoEnviaGravacao) {
+			info = { 'dados': this.camposAlterados(true) };
+			if (this.refExt) info['refExt'] = this.refExt;
+			if (this.valoresFixos) info['valoresFixos'] = this.valoresFixos;
+			dadosGravacao = { "urlGrava": urlGrava, "info": info, "obj": esteCadastro };
+		} else {
+			new cnx.carrega(urlGrava, function() { esteCadastro.retornaGravacao.call(esteCadastro, this.resposta);}, null, 'POST', info);
+			//log(new cnx.carrega(urlGrava, function() { esteCadastro.retornaGravacao.call(esteCadastro, this.resposta);}, null, 'POST', info));	
+		}
+	}
+	if (this.avisoDiferenciado) this.avisoDiferenciado();
+	else {
+		if (this.avisoSalve) this.avisoSalve.fecha();
+		this.avisoGrava = new clAviso({ avisos: { aviso: 'gravando...' }, textoTit: fnLang("porFavorAguarde"), comEspera: 'pq' });
+		var baseAviso = (this.baseAviso) ? this.baseAviso : ((this.objTipo == 'lista') ? ((this.item.cabecalho) ? this.item.cabecalho : this.item.pai.item.cabecalho) : this.onde);
+		baseAviso.appendChild(this.avisoGrava.cria());
+		this.avisoGrava.mostra();
+	}
+	this.botsOff();
+	return dadosGravacao;
+};
+
+Cadastro.prototype.retornaGravacao = function(dados) {
+	if (this.avisoGrava) {
+		if (this.avisoTemporizado) {
+			var cadastro = this;
+			setTimeout(function() { cadastro.avisoGrava.fecha(); }, this.avisoTemporizado);
+		} else {
+			this.avisoGrava.fecha();
+		}
+	}
+	if (obj('frameUpload')) removeObj(obj('frameUpload'));
+	if (dados.indexOf("|acao|") > 0){
+		dados = dados.split("|acao|")[1]; 
+	}
+	var dadosGravados = jQuery.parseJSON(dados);
+	this.dadosRetorno = dadosGravados;
+	var itemOriginal = this.item;
+	var pai = itemOriginal.pai;
+	// se o pai ainda é um cadastro, continua subindo nível a nível até encontrar o pai do primeiro cadastro (que deve ser uma lista ou uma coleção)
+	if (!this.semPermissao) {
+		while (pai.classeOrigem && pai.classeOrigem.indexOf('Cadastro') >= 0) {
+			var itemOriginal = pai.item;
+			var pai = itemOriginal.pai;
+		}
+	}
+	// se veio informação global, troca na variável _info
+	if (dadosGravados._info) for (var i in dadosGravados._info) _info[i] = dadosGravados._info[i];
+	// testa se nao é para remontar um item da coleção
+	// (pai.classeObjeto == "colecao" && !this.dados.pai.naoRemontaAoGravar)
+	var naoMonta = false;	
+	if (!this.semPermissao) {
+		if (pai.classeObjeto == "colecao" && this.dados.pai && this.dados.pai.naoRemontaAoGravar) naoMonta = true;
+	} else {
+		naoMonta = true;
+	}
+	if (!this.naoRemontaAoGravar && !dadosGravados.naoRemontaAoGravar && !naoMonta) {
+		if (this.ehNovo || pai.classeObjeto != "colecao") itemOriginal.exclui.call(itemOriginal);
+		if (!this.item.pai.colecaoSemLista) {	
+			if (this.ehNovo) dadosGravados.eraNovo = true;
+			pai.inclui.call(pai, dadosGravados, this, 'retornoGravacao');
+			for (var i in pai.itens) {
+				var item = pai.itens[i];
+				if (item && item[this.campoID] == dadosGravados.id) this.item = item;
+			}
+			if (this.item.seleciona) {
+				this.item.dados = dadosGravados;
+				// se não for uma abaDialog, reseleciona o item para reabrir
+				if (this.item.pai.abaDialog) this.aba.fecha();
+					else this.item.seleciona();
+			};
+		} 
+	}
+	//temAlteracao.retiraAlterado(this);
+	if (this.objTipo == 'colecao') {
+		// se for coleção, reabilita o botão de inclusão
+		if (this.item.pai.limitaNovoItem)  {
+			if (this.item.pai.botaoIncluir) botao.habilita(this.item.pai.botaoIncluir);
+			var botoesAba = this.item.pai.abaClicada.botoes;
+			for (var i = 0, t = botoesAba.length; t--; i++) {
+				if (botoesAba[i].tipo == 'incluir') { // achou o botão de incluir, então habilita.
+					botoesAba[i].objBotao.habilita();
+				}
+				break;
+			}
+		}
+	}
+	const envioAposGravar = (this.aposGravarDadosJson) ? dados : dadosGravados;
+	if (this.aposGravar) this.aposGravar(envioAposGravar);
+	// os campos também podem ter uma ação individual após a gravação
+	for (var idCampo in this.camposID) {
+		var objCampo = this.camposID[idCampo].objetoCampo;
+		if (objCampo && objCampo.aposGravar) objCampo.aposGravar.call(objCampo);
+	}	
+	if (dadosGravados["msgGrava"]) $("<div class='msgGrava'>" + dadosGravados["msgGrava"] + "</div>").dialog().dialog("open");
+	temAlteracao.retiraAlterado(this);
+};
+
+Cadastro.prototype.botsOff = function() {
+	// this.objBotoes.desabilita();
+	// desabilita botões do cabeçalho
+	if (this.item && this.item.objCabecalho && this.item.objCabecalho.objBotoes){
+		this.item.objCabecalho.objBotoes.desabilita();
+	} else if (this.item && this.item.conteudo && this.item.conteudo.objBotoes) {
+		this.item.conteudo.objBotoes.desabilita();
+	}
+}
+
+Cadastro.prototype.botsOn = function() {
+	//this.objBotoes.habilita();
+	// habilita botões do cabeçalho
+	if (this.item && this.item.objCabecalho && this.item.objCabecalho.objBotoes) this.item.objCabecalho.objBotoes.habilita();
+	else if (this.item && this.item.conteudo && this.item.conteudo.objBotoes) this.item.conteudo.objBotoes.habilita();
+};
+
+Cadastro.prototype.montaEdicao = function() {
+	// if (this.dados.id && this.dados.id.toString().substring(0,4) == 'novo') return;
+	for (var i = 0; i < this.campos.length; i++) this.campos[i].objetoCampo.trocaTag();
+	if (this.avisoSalve) this.avisoSalve.fecha();
+	if (this.aposEditar) this.aposEditar();
+	if (typeof(botao) != 'undefined') botao.tamanho(this.onde);
+};
+
+Cadastro.prototype.trocaVisu = function() {
+	var onde = this.onde;
+	if (temClasse(onde, 'visualizacao')) {
+		tiraClasse(onde, 'visualizacao');
+	} else {
+		colocaClasse(onde, 'visualizacao');
+	}
+};
+
+Cadastro.prototype.permissao = function(acao) {
+	// pode ter perm na instância deste cadastro
+	if (this.semPermissao) return true;
+	if (this.perm && this.perm[acao]) return (typeof(this.perm[acao]) == "function") ? this.perm[acao].call(this) : this.perm[acao];
+	// encontra a aba e verifica a permissão
+	if (this.aba && this.aba.permissao && this.aba.perm) return this.aba.permissao(acao);
+	// se não encontrar a aba (ou a permissão da aba) encontra a lista e verifica a permissao da lista
+	var lista = this.item.pai;
+	while (lista && lista.item) lista = lista.item.pai;
+	return (lista && lista.permissao) ? lista.permissao(acao) : true;
+};
+
+Cadastro.prototype.criaDialog = function(parametros) {
+	// parametros: idDiv, titulo, largura, altura, beforeClose, mudaTamanho, mudaPosicao, modal
+	let paramDialog = {
+		autoOpen: true,
+		closeOnEscape: false,
+		zIndex: 10000,
+		close: function() { $(this).remove(); }
+	};
+	if (parametros.titulo) paramDialog.title = parametros.titulo;
+	if (parametros.largura) paramDialog.width = parametros.largura;
+	if (parametros.altura) paramDialog.height = parametros.altura;
+	paramDialog.resizable = (parametros.mudaTamanho) ? parametros.mudaTamanho : false;
+	paramDialog.draggable = (parametros.mudaPosicao) ? parametros.mudaPosicao : false;
+	paramDialog.modal = (parametros.modal) ? parametros.modal : true;
+	if (parametros.beforeClose) paramDialog.beforeClose = parametros.beforeClose;
+	if (beforeClose) param.beforeClose = beforeClose;
+	return $("<div id='" + idDiv + "'></div>").appendTo("body").dialog(paramDialog);	
+};
+
+//Cadastro.prototype.emailSenha = function() {
+//	var email = new clEmail(this, { url: "func/email_senha.php?id=" + this.dados.id, mostra: true });
+//};
+
+// *******************************************************************************************************************************
+// *******************************************************************************************************************************
